@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2023 Synthstrom Audible Limited
+ * Copyright (c) 2025 Nikodemus Siivola
  *
  * This file is part of The Synthstrom Audible Deluge Firmware.
  *
@@ -16,26 +16,30 @@
  */
 #pragma once
 #include "gui/menu_item/formatted_title.h"
-#include "gui/menu_item/source/patched_param.h"
+#include "gui/menu_item/toggle.h"
+#include "gui/ui/sound_editor.h"
+#include "model/song/song.h"
 #include "processing/sound/sound.h"
 
-namespace deluge::gui::menu_item::source::patched_param {
-class ModulatorLevel final : public PatchedParam, public FormattedTitle {
+namespace deluge::gui::menu_item::osc {
+class Tracking final : public Toggle, public FormattedTitle {
 public:
-	ModulatorLevel(l10n::String name, int32_t newP, uint8_t source_id)
-	    : PatchedParam(name, newP, source_id), FormattedTitle(name, source_id + 1) {}
+	using Toggle::Toggle;
+	Tracking(l10n::String title_format_str, uint8_t source_id)
+	    : Toggle(), FormattedTitle(title_format_str, source_id + 1), source_id_{source_id} {}
+	void readCurrentValue() override { this->setValue(soundEditor.currentSound->sources[source_id_].isTracking); }
+	void writeCurrentValue() override { soundEditor.currentSound->sources[source_id_].isTracking = this->getValue(); }
 
-	[[nodiscard]] std::string_view getTitle() const override { return FormattedTitle::title(); }
 	[[nodiscard]] std::string_view getName() const override { return FormattedTitle::title(); }
+	[[nodiscard]] std::string_view getTitle() const override { return FormattedTitle::title(); }
 
-	bool isRelevant(ModControllableAudio* modControllable, int32_t whichThing) override {
-		Sound* sound = static_cast<Sound*>(modControllable);
-		return sound->getSynthMode() == SynthMode::FM;
+	void getColumnLabel(StringBuf& label) override {
+		label.append(getName());
+		label.truncate(4);
 	}
 
-	[[nodiscard]] NumberStyle getNumberStyle() const override { return BAR; }
-
-	void getColumnLabel(StringBuf& label) override { label.append(getName().substr(2).data()); }
+private:
+	uint8_t source_id_;
 };
 
-} // namespace deluge::gui::menu_item::source::patched_param
+} // namespace deluge::gui::menu_item::osc
